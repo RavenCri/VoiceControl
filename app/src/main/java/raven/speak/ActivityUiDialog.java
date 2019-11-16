@@ -5,13 +5,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-import android.widget.TextView;
+import android.view.View;
+import android.widget.Toast;
 
 
 import androidx.core.app.ActivityCompat;
@@ -23,7 +27,8 @@ import com.baidu.tts.chainofresponsibility.logger.LoggerProxy;
 import com.baidu.tts.client.SpeechSynthesizer;
 import com.baidu.tts.client.SpeechSynthesizerListener;
 import com.baidu.tts.client.TtsMode;
-import raven.speak.R;
+import com.github.bassaer.chatmessageview.view.ChatView;
+
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -91,13 +96,19 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
 
     protected SpeechSynthesizer mSpeechSynthesizer;
 
-    protected TextView txtLog;
+    //protected TextView txtLog;
 
     //声明SoundPool的引用
     SoundPool sp;
-    HashMap<Integer, Integer> hm;//声明HashMap来存放声音文件
-    int currStaeamId;//当前正播放的streamId
+    //声明HashMap来存放声音文件
+    HashMap<Integer, Integer> hm;
+    //当前正播放的streamId
+    int currStaeamId;
 
+    public com.github.bassaer.chatmessageview.model.ChatUser  me;
+    public com.github.bassaer.chatmessageview.model.ChatUser  you;
+
+    public ChatView mChatView;
     public ActivityUiDialog() {
         super(R.raw.uidialog_recog, false);
     }
@@ -115,15 +126,79 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         init();
         //合成初始化
         initTTs();
-        /**
-         * 有2个listner，一个是用户自己的业务逻辑，如MessageStatusRecogListener。另一个是UI对话框的。
-         * 使用这个ChainRecogListener把两个listener和并在一起
-         */
-        chainRecogListener = new ChainRecogListener();
-        // DigitalDialogInput 输入 ，MessageStatusRecogListener可替换为用户自己业务逻辑的listener
-        chainRecogListener.addListener(new MessageStatusRecogListener(handler));
-        myRecognizer.setEventListener(chainRecogListener); // 替换掉原来的listener
 
+        initWakeup();
+
+        initChatView();
+
+    }
+
+    private void initChatView() {
+        mChatView = (ChatView)findViewById(R.id.message_view);
+        //User id
+        int myId = 0;
+        //User icon
+        Bitmap myIcon = BitmapFactory.decodeResource(getResources(), R.drawable.man);
+        //User name
+        String myName = "你";
+
+        int yourId = 1;
+        Bitmap yourIcon = BitmapFactory.decodeResource(getResources(), R.drawable.reboot);
+        String yourName = "曼拉";
+
+        me = new com.github.bassaer.chatmessageview.model.ChatUser(myId, myName, myIcon);
+        you = new com.github.bassaer.chatmessageview.model.ChatUser(yourId, yourName, yourIcon);
+        //txtLog = (TextView) findViewById(R.id.txtLog);
+        mChatView.setRightBubbleColor(ContextCompat.getColor(this, R.color.green500));
+        mChatView.setLeftBubbleColor(ContextCompat.getColor(this, R.color.blueGray50));
+        mChatView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorTransparent_15));
+        mChatView.setSendButtonColor(ContextCompat.getColor(this, R.color.blueGray400));
+
+
+        mChatView.setSendIcon(R.drawable.ic_action_send);
+        mChatView.setRightMessageTextColor(Color.WHITE);
+        mChatView.setLeftMessageTextColor(Color.BLACK);
+        mChatView.setUsernameTextColor(Color.BLACK);
+        mChatView.setSendTimeTextColor(Color.BLACK);
+        mChatView.setDateSeparatorColor(Color.BLACK);
+
+
+        mChatView.setInputTextHint("new message...");
+        mChatView.setMessageMarginTop(5);
+        mChatView.setMessageMarginBottom(5);
+
+        mChatView.setOnClickSendButtonListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mChatView.getInputText().equals("")){
+                   Toast.makeText(ActivityUiDialog.this,"你还未输入消息呢~", Toast.LENGTH_SHORT);
+                   return;
+                }
+                replay(mChatView.getInputText());
+                //Reset edit text
+                mChatView.setInputText("");
+            }
+
+        });
+    }
+
+    private void initWakeup() {
+        //唤醒调用
+        IWakeupListener listener = new SimpleWakeupListener(){
+            @Override
+            public void onSuccess(String word, WakeUpResult result) {
+                super.onSuccess(word, result);
+
+                start();
+            }
+        };
+        //唤醒
+        myWakeup = new MyWakeup(this, listener);
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put(SpeechConstant.WP_WORDS_FILE, "assets://WakeUp.bin");
+        params.put(SpeechSynthesizer.PARAM_MIX_MODE, SpeechSynthesizer.MIX_MODE_HIGH_SPEED_SYNTHESIZE);
+        params.put("appid",appId);
+        myWakeup.start(params);
 
     }
 
@@ -143,26 +218,15 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        //唤醒调用
-        IWakeupListener listener = new SimpleWakeupListener(){
-            @Override
-            public void onSuccess(String word, WakeUpResult result) {
-                super.onSuccess(word, result);
 
-                start();
-            }
-        };
-        //唤醒
-        myWakeup = new MyWakeup(this, listener);
-        Map<String, Object> params = new HashMap<String, Object>();
-        params.put(SpeechConstant.WP_WORDS_FILE, "assets://WakeUp.bin");
-        params.put("appid",appId);
-
-        // "assets:///WakeUp.bin" 表示WakeUp.bin文件定义在assets目录下
-        myWakeup.start(params);
-        // params.put(SpeechConstant.ACCEPT_AUDIO_DATA,true);
-        // params.put(SpeechConstant.IN_FILE,"res:///com/baidu/android/voicedemo/wakeup.pcm");
-        // params里 "assets:///WakeUp.bin" 表示WakeUp.bin文件定义在assets目录下
+        /**
+         * 有2个listner，一个是用户自己的业务逻辑，如MessageStatusRecogListener。另一个是UI对话框的。
+         * 使用这个ChainRecogListener把两个listener和并在一起
+         */
+        chainRecogListener = new ChainRecogListener();
+        // DigitalDialogInput 输入 ，MessageStatusRecogListener可替换为用户自己业务逻辑的listener
+        chainRecogListener.addListener(new MessageStatusRecogListener(handler));
+        myRecognizer.setEventListener(chainRecogListener); // 替换掉原来的listener
 
         mainHandler = new Handler() {
             /*
@@ -171,12 +235,20 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
-                if(msg.what == 400){
-                    System.out.println("服务器连接异常");
-                    txtLog.append("曼拉：服务器连接异常，请先检测您是否已经开启了服务器。\n");
-                }else if(msg.what == 200){
-                    txtLog.append("曼拉："+msg.getData().getString("msg")+"\n");
+                String showText = null;
+                if(msg.what == 400 || msg.what == 200){
+
+                    showText = msg.getData().getString("msg");
+                    System.out.println(showText);
+                    com.github.bassaer.chatmessageview.model.Message message = new com.github.bassaer.chatmessageview.model.Message.Builder()
+                            .setUser(you)
+                            .setRight(false)
+                            .setText(showText)
+                            .build();
+                    //Set to chat view
+                    mChatView.send(message);
                 }
+
                 if (msg.obj != null) {
                     print(msg.obj.toString());
 
@@ -184,7 +256,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             }
 
         };
-        txtLog = (TextView) findViewById(R.id.txtLog);
+
     }
 
     /**
@@ -192,7 +264,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
      */
     @Override
     protected void start() {
-        txtLog.setText("");
+//        txtLog.setText("");
         playSound(1, 0);
 
         // 此处params可以打印出来，直接写到你的代码里去，最终的json一致即可。
@@ -216,58 +288,69 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         Log.i(TAG, "requestCode" + requestCode);
 
         if (requestCode == 2) {
-            String message = "对话框的识别结果：";
+            String res = "对话框的识别结果：";
             if (resultCode == RESULT_OK) {
 
                 ArrayList results = data.getStringArrayListExtra("results");
                 if (results != null && results.size() > 0) {
-                    message += results.get(0);
-                    String res = (String) results.get(0);
+                    res += results.get(0);
+                    res = (String) results.get(0);
 
-                    txtLog.append("你："+res+ "\n");
-                    String resUrlEncode = URLEncoder.encode(res);
-                    new Thread(()->{
-                        String text = null ;
 
-                        try {
-                            OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.SECONDS).build();//创建OkHttpClient对象
-                            Request request = new Request.Builder()
-                                    .url("http://raven.imwork.net:55044/replay?word=" +
-                                            resUrlEncode)//请求接口。如果需要传参拼接到接口后面。
-                                    .build();//创建Request 对象
-                            System.out.println();
-                            Response response = null;
-
-                            response = client.newCall(request).execute();//得到Response 对象
-                            text = response.body().string();
-                            Message msg = new Message();
-                            Bundle bundle = new Bundle();
-                            bundle.putString("msg",text);
-                            msg.setData(bundle);
-                            msg.what = 200;
-                            mainHandler.sendMessage(msg);
-
-                            //txtLog.append("绿漾："+text+ "\n");
-                        } catch (Exception e) {
-
-                            text = "服务器连接异常，请先检测您是否已经开启了服务器。";
-
-                            Message msg = new Message();
-                            msg.what = 400;
-                            mainHandler.sendMessage(msg);
-                        }
-                        mSpeechSynthesizer.speak(text);
-
-                    }).start();
+                    replay(res);
 
                 }
             } else {
-                message += "没有结果";
+                res += "没有结果";
             }
 
-            MyLogger.info(message);
+            MyLogger.info(res);
         }
 
+    }
+
+    private void replay(String res) {
+        com.github.bassaer.chatmessageview.model.Message msg = new com.github.bassaer.chatmessageview.model.Message.Builder()
+                .setUser(me)
+                .setRight(true)
+                .setText(res)
+                .build();
+        //Set to chat view
+        mChatView.send(msg);
+
+        String resUrlEncode = URLEncoder.encode(res);
+        new Thread(()->{
+            String text = null ;
+
+            try {
+                OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.SECONDS).build();//创建OkHttpClient对象
+                Request request = new Request.Builder()
+                        .url("http://raven.imwork.net:55044/replay?word=" +
+                                resUrlEncode)//请求接口。如果需要传参拼接到接口后面。
+                        .build();//创建Request 对象
+
+                Response response = null;
+
+                response = client.newCall(request).execute();//得到Response 对象
+                text = response.body().string();
+
+
+                //txtLog.append("绿漾："+text+ "\n");
+            } catch (Exception e) {
+
+                text = "服务器连接异常，请先检测您是否已经开启了服务器。";
+
+
+            }
+            Message message = new Message();
+            Bundle bundle = new Bundle();
+            bundle.putString("msg",text);
+            message.setData(bundle);
+            message.what = 200;
+            mainHandler.sendMessage(message);
+            mSpeechSynthesizer.speak(text);
+
+        }).start();
     }
 //
 //    @Override
@@ -325,7 +408,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         // 设置合成的语调，0-9 ，默认 5
         mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_PITCH, "5");
 
-        mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_MIX_MODE, SpeechSynthesizer.MIX_MODE_DEFAULT);
+        mSpeechSynthesizer.setParam(SpeechSynthesizer.PARAM_MIX_MODE, SpeechSynthesizer.MIX_MODE_HIGH_SPEED_SYNTHESIZE);
         // 该参数设置为TtsMode.MIX生效。即纯在线模式不生效。
         // MIX_MODE_DEFAULT 默认 ，wifi状态下使用在线，非wifi离线。在线状态下，请求超时6s自动转离线
         // MIX_MODE_HIGH_SPEED_SYNTHESIZE_WIFI wifi状态下使用在线，非wifi离线。在线状态下， 请求超时1.2s自动转离线

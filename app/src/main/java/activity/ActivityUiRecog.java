@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.view.MotionEvent;
 import android.view.View;
 
 
@@ -15,6 +16,7 @@ import params.CommonRecogParams;
 import params.NluRecogParams;
 import params.OfflineRecogParams;
 import params.OnlineRecogParams;
+import raven.speak.R;
 import recog.IStatus;
 import setting.OnlineSetting;
 
@@ -116,6 +118,19 @@ public abstract class ActivityUiRecog extends ActivityCommon implements IStatus 
     protected void initView() {
         super.initView();
         status = STATUS_NONE;
+        btn.setOnTouchListener(new View.OnTouchListener(){
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN){
+                    //更改为按下时的背景图片
+                    v.setBackgroundResource(R.drawable.recite_record_pressed);
+                }else if(event.getAction() == MotionEvent.ACTION_UP){
+                    //改为抬起时的图片
+                    v.setBackgroundResource(R.drawable.recite_record_normal);
+                }
+                return false;
+            }
+        });
         btn.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -125,7 +140,7 @@ public abstract class ActivityUiRecog extends ActivityCommon implements IStatus 
                         start();
                         status = STATUS_WAITING_READY;
                         updateBtnTextByStatus();
-                        txtLog.setText("");
+//                        txtLog.setText("");
                         break;
                     case STATUS_WAITING_READY: // 调用本类的start方法后，即输入START事件后，等待引擎准备完毕。
                     case STATUS_READY: // 引擎准备完毕。
@@ -180,7 +195,7 @@ public abstract class ActivityUiRecog extends ActivityCommon implements IStatus 
     private void updateBtnTextByStatus() {
         switch (status) {
             case STATUS_NONE:
-                btn.setText("呼叫曼拉");
+                //btn.setText("呼叫曼拉");
                 btn.setEnabled(true);
 
                 break;
@@ -188,13 +203,13 @@ public abstract class ActivityUiRecog extends ActivityCommon implements IStatus 
             case STATUS_READY:
             case STATUS_SPEAKING:
             case STATUS_RECOGNITION:
-                btn.setText("停止录音");
+                //btn.setText("停止录音");
                 btn.setEnabled(true);
 
                 break;
             case STATUS_LONG_SPEECH_FINISHED:
             case STATUS_STOPPED:
-                btn.setText("取消整个识别过程");
+               // btn.setText("取消整个识别过程");
                 btn.setEnabled(true);
 
                 break;

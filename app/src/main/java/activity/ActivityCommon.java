@@ -2,12 +2,15 @@ package activity;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.StrictMode;
 
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,7 +18,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 
-
+import com.github.bassaer.chatmessageview.view.ChatView;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,9 +34,9 @@ import util.MyLogger;
 
 public abstract class ActivityCommon extends AppCompatActivity {
     protected TextView txtLog;
-    protected Button btn;
+    protected ImageButton btn;
     protected TextView txtResult;
-
+    public ChatView mChatView;
     protected Handler handler;
 
     protected final int layout;
@@ -87,9 +90,12 @@ public abstract class ActivityCommon extends AppCompatActivity {
     }
 
     protected void initView() {
-      //  txtResult = (TextView) findViewById(R.id.txtResult);
-        txtLog = (TextView) findViewById(R.id.txtLog);
-        btn = (Button) findViewById(R.id.btn);
+        int yourId = 1;
+        Bitmap yourIcon = BitmapFactory.decodeResource(getResources(), R.drawable.reboot);
+        String yourName = "曼拉";
+        mChatView = (ChatView)findViewById(R.id.message_view);
+        btn = (ImageButton) findViewById(R.id.btn);
+        com.github.bassaer.chatmessageview.model.ChatUser you = new com.github.bassaer.chatmessageview.model.ChatUser(yourId, yourName, yourIcon);
         String descText = "";
         try {
             InputStream is = getResources().openRawResource(textId);
@@ -99,8 +105,15 @@ public abstract class ActivityCommon extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        txtLog.setText(descText);
-        txtLog.append("\n");
+        com.github.bassaer.chatmessageview.model.Message message = new com.github.bassaer.chatmessageview.model.Message.Builder()
+                .setUser(you)
+                .setRight(false)
+                .setText(descText)
+                .build();
+        //Set to chat view
+        mChatView.send(message);
+       // txtLog.setText(descText);
+       // txtLog.append("\n");
     }
 
     /**
