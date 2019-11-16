@@ -14,7 +14,17 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -105,10 +115,16 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     //当前正播放的streamId
     int currStaeamId;
 
-    public com.github.bassaer.chatmessageview.model.ChatUser  me;
-    public com.github.bassaer.chatmessageview.model.ChatUser  you;
+    public com.github.bassaer.chatmessageview.model.ChatUser me;
+    public com.github.bassaer.chatmessageview.model.ChatUser you;
 
     public ChatView mChatView;
+
+    private float moveX;
+    private float moveY;
+    private float pressX;
+    private float pressY;
+
     public ActivityUiDialog() {
         super(R.raw.uidialog_recog, false);
     }
@@ -134,7 +150,14 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     }
 
     private void initChatView() {
-        mChatView = (ChatView)findViewById(R.id.message_view);
+        //解决输入框与键盘的高度wet提
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+        mChatView = (ChatView) findViewById(R.id.message_view);
+        View parent = (View) findViewById(R.id.inputBox).getParent();
+        //设置透明
+        parent.getBackground().setAlpha(12);
+        //隐藏
+        parent.setVisibility(View.INVISIBLE);
         //User id
         int myId = 0;
         //User icon
@@ -150,18 +173,45 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         you = new com.github.bassaer.chatmessageview.model.ChatUser(yourId, yourName, yourIcon);
         //txtLog = (TextView) findViewById(R.id.txtLog);
         mChatView.setRightBubbleColor(ContextCompat.getColor(this, R.color.green500));
-        mChatView.setLeftBubbleColor(ContextCompat.getColor(this, R.color.blueGray50));
-        mChatView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorTransparent_15));
+
+        mChatView.setLeftBubbleColor(ContextCompat.getColor(this, R.color.blueSky));
+
+        //mChatView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorTransparent_15));
         mChatView.setSendButtonColor(ContextCompat.getColor(this, R.color.blueGray400));
 
 
         mChatView.setSendIcon(R.drawable.ic_action_send);
+
         mChatView.setRightMessageTextColor(Color.WHITE);
-        mChatView.setLeftMessageTextColor(Color.BLACK);
+        mChatView.setLeftMessageTextColor(Color.WHITE);
+
         mChatView.setUsernameTextColor(Color.BLACK);
         mChatView.setSendTimeTextColor(Color.BLACK);
         mChatView.setDateSeparatorColor(Color.BLACK);
+        TextView textView = findViewById(R.id.inputBox);
+        // textView.setBackgroundColor(0xD9ffffff);
+        textView.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                    if (mChatView.getInputText().equals("")) {
 
+                        // Toast.makeText(ActivityUiDialog.this,"你还未输入消息呢~", Toast.LENGTH_SHORT);
+                        return false;
+                    }
+
+                    replay(mChatView.getInputText());
+                    //Reset edit text
+                    mChatView.setInputText("");
+
+
+                    return true;
+                }
+                return false;
+            }
+
+
+        });
 
         mChatView.setInputTextHint("new message...");
         mChatView.setMessageMarginTop(5);
@@ -170,17 +220,65 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         mChatView.setOnClickSendButtonListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mChatView.getInputText().equals("")){
-                   Toast.makeText(ActivityUiDialog.this,"你还未输入消息呢~", Toast.LENGTH_SHORT);
-                   return;
+                if (mChatView.getInputText().equals("")) {
+                    Toast.makeText(ActivityUiDialog.this, "你还未输入消息呢~", Toast.LENGTH_SHORT);
+                    return;
                 }
                 replay(mChatView.getInputText());
                 //Reset edit text
                 mChatView.setInputText("");
+
             }
 
         });
+        //findViewById(R.id.messageView).setOnTouchListener(TouchListen());
+        findViewById(R.id.mainXml).setOnTouchListener(TouchListen());
     }
+
+    private View.OnTouchListener TouchListen() {
+        return new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+
+                switch (event.getAction()) {
+                    //按下
+                    case MotionEvent.ACTION_DOWN:
+                        pressX = event.getX();
+                        pressY = event.getY();
+                        break;
+                    //移动
+                    case MotionEvent.ACTION_MOVE:
+                        moveX = event.getX();
+                        moveY = event.getY();
+                        break;
+                    //松开
+                    case MotionEvent.ACTION_UP:
+                        if (moveX - pressX > 150) {
+                            Log.i("message", "向右");
+                            View parent = (View) findViewById(R.id.inputBox).getParent();
+                            //显示
+                            parent.setVisibility(View.INVISIBLE);
+                            findViewById(R.id.btn).setVisibility(View.VISIBLE);
+                        } else if (moveX - pressX < 150) {
+                            View parent = (View) findViewById(R.id.inputBox).getParent();
+                            //显示
+                            findViewById(R.id.btn).setVisibility(View.INVISIBLE);
+                            parent.setVisibility(View.VISIBLE);
+
+
+                            Log.i("message", "向左");
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+
+        };
+    }
+
+
 
     private void initWakeup() {
         //唤醒调用
@@ -245,8 +343,15 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                             .setRight(false)
                             .setText(showText)
                             .build();
+                    mChatView.setRefreshing(false);
                     //Set to chat view
                     mChatView.send(message);
+                   /* EditText editText = findViewById(R.id.inputBox);
+
+                    editText.setFocusableInTouchMode(true);
+                    editText.requestFocus();
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.showSoftInput(editText, 0);*/
                 }
 
                 if (msg.obj != null) {
@@ -265,6 +370,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     @Override
     protected void start() {
 //        txtLog.setText("");
+        mSpeechSynthesizer.stop();
         playSound(1, 0);
 
         // 此处params可以打印出来，直接写到你的代码里去，最终的json一致即可。
@@ -315,6 +421,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 .setRight(true)
                 .setText(res)
                 .build();
+        mChatView.setRefreshing(true);
         //Set to chat view
         mChatView.send(msg);
 
@@ -348,6 +455,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             message.setData(bundle);
             message.what = 200;
             mainHandler.sendMessage(message);
+            mSpeechSynthesizer.stop();
             mSpeechSynthesizer.speak(text);
 
         }).start();

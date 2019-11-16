@@ -57,6 +57,7 @@ public abstract class ActivityCommon extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setTitle("曼拉语音控制");
         // setStrictMode();
         InFileStream.setContext(this);
         setContentView(layout);
@@ -109,6 +110,13 @@ public abstract class ActivityCommon extends AppCompatActivity {
                 .setUser(you)
                 .setRight(false)
                 .setText(descText)
+                .build();
+        //Set to chat view
+        mChatView.send(message);
+        message = new com.github.bassaer.chatmessageview.model.Message.Builder()
+                .setUser(you)
+                .setRight(false)
+                .setText(" 左滑可以切换文本输入，右划切换语音输入哦~")
                 .build();
         //Set to chat view
         mChatView.send(message);
