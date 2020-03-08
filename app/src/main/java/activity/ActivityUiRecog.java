@@ -1,6 +1,5 @@
 package activity;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Message;
@@ -18,7 +17,6 @@ import params.OfflineRecogParams;
 import params.OnlineRecogParams;
 import raven.speak.R;
 import recog.IStatus;
-import setting.OnlineSetting;
 
 /**
  * 识别的基类Activity。 ActivityCommon定义了通用的UI部分

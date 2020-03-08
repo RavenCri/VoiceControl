@@ -29,7 +29,11 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".LoginActivity"
 
+            >
+
+        </activity>
 
         <activity android:name=".ActivityUiDialog">
             <intent-filter>
@@ -43,14 +47,14 @@
             android:configChanges="orientation|keyboardHidden|screenLayout"
             android:theme="@android:style/Theme.Dialog"
             android:exported="false"
-            android:screenOrientation="portrait">
+          >
             <intent-filter>
                 <action android:name="com.baidu.action.RECOGNIZE_SPEECH"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
-        <uses-library android:name="org.apache.http.legacy" android:required="false"></uses-library>
 
+        <uses-library android:name="org.apache.http.legacy" android:required="false"></uses-library>
 
         <meta-data
             android:name="com.baidu.speech.APP_ID"

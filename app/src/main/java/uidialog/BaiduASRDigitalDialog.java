@@ -285,7 +285,7 @@ public class BaiduASRDigitalDialog extends BaiduASRDialog {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+            super.onCreate(savedInstanceState);
         Intent params = getIntent();
 
         if (params != null) {

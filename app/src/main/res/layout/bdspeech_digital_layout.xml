@@ -160,8 +160,7 @@
                     android:listSelector="@android:color/transparent"
                     android:overScrollMode="never"
                     android:requiresFadingEdge="vertical"
-                    android:tag="suggestions_list" >
-                </ListView>
+                    android:tag="suggestions_list"></ListView>
             </LinearLayout>
 
             <LinearLayout

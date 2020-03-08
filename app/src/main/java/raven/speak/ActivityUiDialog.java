@@ -261,9 +261,10 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                             findViewById(R.id.btn).setVisibility(View.VISIBLE);
                         } else if (moveX - pressX < 150) {
                             View parent = (View) findViewById(R.id.inputBox).getParent();
-                            //显示
+                            //隐藏按钮
                             findViewById(R.id.btn).setVisibility(View.INVISIBLE);
-                            parent.setVisibility(View.VISIBLE);
+                            //显示 输入框
+                                parent.setVisibility(View.VISIBLE);
 
 
                             Log.i("message", "向左");
@@ -401,10 +402,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 if (results != null && results.size() > 0) {
                     res += results.get(0);
                     res = (String) results.get(0);
-
-
                     replay(res);
-
                 }
             } else {
                 res += "没有结果";
@@ -432,22 +430,18 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             try {
                 OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.SECONDS).build();//创建OkHttpClient对象
                 Request request = new Request.Builder()
-                        .url("http://raven.imwork.net:55044/replay?word=" +
+                        .url("http://192.168.2.112/replay?word=" +
                                 resUrlEncode)//请求接口。如果需要传参拼接到接口后面。
-                        .build();//创建Request 对象
+                        .build();
 
                 Response response = null;
 
-                response = client.newCall(request).execute();//得到Response 对象
+                response = client.newCall(request).execute();
                 text = response.body().string();
-
 
                 //txtLog.append("绿漾："+text+ "\n");
             } catch (Exception e) {
-
                 text = "服务器连接异常，请先检测您是否已经开启了服务器。";
-
-
             }
             Message message = new Message();
             Bundle bundle = new Bundle();
