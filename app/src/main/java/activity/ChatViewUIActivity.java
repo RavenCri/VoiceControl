@@ -9,7 +9,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.StrictMode;
 
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -32,10 +31,10 @@ import util.MyLogger;
  * Created by fujiayi on 2017/6/20.
  */
 
-public abstract class ActivityCommon extends AppCompatActivity {
+public abstract class ChatViewUIActivity extends AppCompatActivity {
     protected TextView txtLog;
     protected ImageButton btn;
-    protected TextView txtResult;
+
     public ChatView mChatView;
     protected Handler handler;
 
@@ -44,11 +43,11 @@ public abstract class ActivityCommon extends AppCompatActivity {
 
     protected int textViewLines = 0; // 防止textView中文本过多
 
-    public ActivityCommon(int textId) {
-        this(textId, R.layout.common_without_setting);
+    public ChatViewUIActivity(int textId) {
+        this(textId, R.layout.init_chatview);
     }
 
-    public ActivityCommon(int textId, int layout) {
+    public ChatViewUIActivity(int textId, int layout) {
         super();
         this.textId = textId;
         this.layout = layout;
@@ -58,10 +57,11 @@ public abstract class ActivityCommon extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setTitle("曼拉语音控制");
-        // setStrictMode();
+        //setStrictMode();
         InFileStream.setContext(this);
         setContentView(layout);
-        initView();
+        // 初始化聊天面板
+        initChatViewUI();
         handler = new Handler() {
 
             /*
@@ -85,18 +85,16 @@ public abstract class ActivityCommon extends AppCompatActivity {
                 textViewLines = 0;
                 txtLog.setText("");
             }
-            // 每次识别的日志记录
-            //txtLog.append(msg.obj.toString() + "\n");
         }
     }
 
-    protected void initView() {
+    protected void initChatViewUI() {
         int yourId = 1;
         Bitmap yourIcon = BitmapFactory.decodeResource(getResources(), R.drawable.reboot);
-        String yourName = "曼拉";
+        String userLeftName = "曼拉";
         mChatView = (ChatView)findViewById(R.id.message_view);
         btn = (ImageButton) findViewById(R.id.btn);
-        com.github.bassaer.chatmessageview.model.ChatUser you = new com.github.bassaer.chatmessageview.model.ChatUser(yourId, yourName, yourIcon);
+        com.github.bassaer.chatmessageview.model.ChatUser you = new com.github.bassaer.chatmessageview.model.ChatUser(yourId, userLeftName, yourIcon);
         String descText = "";
         try {
             InputStream is = getResources().openRawResource(textId);
@@ -111,17 +109,16 @@ public abstract class ActivityCommon extends AppCompatActivity {
                 .setRight(false)
                 .setText(descText)
                 .build();
-        //Set to chat view
+        //聊天面板增加消息
         mChatView.send(message);
         message = new com.github.bassaer.chatmessageview.model.Message.Builder()
                 .setUser(you)
                 .setRight(false)
                 .setText(" 左滑可以切换文本输入，右划切换语音输入哦~")
                 .build();
-        //Set to chat view
+
         mChatView.send(message);
-       // txtLog.setText(descText);
-       // txtLog.append("\n");
+
     }
 
     /**
@@ -142,14 +139,12 @@ public abstract class ActivityCommon extends AppCompatActivity {
             if (PackageManager.PERMISSION_GRANTED != ContextCompat.checkSelfPermission(this, perm)) {
                 toApplyList.add(perm);
                 // 进入到这里代表没有权限.
-
             }
         }
         String[] tmpList = new String[toApplyList.size()];
         if (!toApplyList.isEmpty()) {
             ActivityCompat.requestPermissions(this, toApplyList.toArray(tmpList), 123);
         }
-
     }
 
     @Override

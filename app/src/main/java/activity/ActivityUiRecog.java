@@ -6,14 +6,8 @@ import android.os.Message;
 import android.preference.PreferenceManager;
 import android.view.MotionEvent;
 import android.view.View;
-
-
 import java.util.Map;
-
-import params.AllRecogParams;
 import params.CommonRecogParams;
-import params.NluRecogParams;
-import params.OfflineRecogParams;
 import params.OnlineRecogParams;
 import raven.speak.R;
 import recog.IStatus;
@@ -40,60 +34,42 @@ import recog.IStatus;
  * <p>
  */
 
-public abstract class ActivityUiRecog extends ActivityCommon implements IStatus {
+public abstract class ActivityUiRecog extends ChatViewUIActivity implements IStatus {
 
     /*
      * Api的参数类，仅仅用于生成调用START的json字符串，本身与SDK的调用无关
      */
     private final CommonRecogParams apiParams;
-
-
-
     /**
      * 控制UI按钮的状态
      */
     protected int status;
-
     /**
      * 日志使用
      */
     private static final String TAG = "ActivityUiRecog";
-
-
     /**
      * 开始录音，点击“开始”按钮后调用。
      */
     protected abstract void start();
-
-
     /**
      * 开始录音后，手动停止录音。SDK会识别在此过程中的录音。点击“停止”按钮后调用。
      */
     protected abstract void stop();
-
     /**
      * 开始录音后，取消这次录音。SDK会取消本次识别，回到原始状态。点击“取消”按钮后调用。
      */
     protected abstract void cancel();
-
+    // 默认非运行状态
     protected boolean running = false;
 
     public ActivityUiRecog(int textId) {
         super(textId);
         String className = getClass().getSimpleName();
+        System.out.println("className:"+className);
         if (className.equals("ActivityOnlineRecog") || className.equals("ActivityUiDialog")) {
-
             apiParams = new OnlineRecogParams();
-        } else if (className.equals("ActivityOfflineRecog")) {
-
-            apiParams = new OfflineRecogParams();
-        } else if (className.equals("ActivityNlu")) {
-
-            apiParams = new NluRecogParams();
-        } else if (className.equals("ActivityAllRecog")) {
-
-            apiParams = new AllRecogParams();
-        } else {
+        }else {
             throw new RuntimeException("PLEASE DO NOT RENAME DEMO ACTIVITY, current name:" + className);
         }
     }
@@ -108,13 +84,14 @@ public abstract class ActivityUiRecog extends ActivityCommon implements IStatus 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // 调用父类方法
         super.onCreate(savedInstanceState);
         apiParams.initSamplePath(this);
     }
 
     @Override
-    protected void initView() {
-        super.initView();
+    protected void initChatViewUI() {
+        super.initChatViewUI();
         status = STATUS_NONE;
         btn.setOnTouchListener(new View.OnTouchListener(){
             @Override
@@ -130,7 +107,6 @@ public abstract class ActivityUiRecog extends ActivityCommon implements IStatus 
             }
         });
         btn.setOnClickListener(new View.OnClickListener() {
-
             @Override
             public void onClick(View v) {
                 switch (status) {
@@ -138,7 +114,6 @@ public abstract class ActivityUiRecog extends ActivityCommon implements IStatus 
                         start();
                         status = STATUS_WAITING_READY;
                         updateBtnTextByStatus();
-//                        txtLog.setText("");
                         break;
                     case STATUS_WAITING_READY: // 调用本类的start方法后，即输入START事件后，等待引擎准备完毕。
                     case STATUS_READY: // 引擎准备完毕。

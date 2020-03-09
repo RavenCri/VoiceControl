@@ -9,28 +9,30 @@
         android:layout_height="400dp"
         android:layout_gravity="center_horizontal"
 
-        android:background="@drawable/company"
+        android:background="@drawable/logo2"
         >
     </ImageView>
     <EditText
+        android:id="@+id/username"
         android:layout_width="280dp"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:background="@drawable/edit_round"
         android:padding="10dp"
-        android:textSize="20dp"
+        android:textSize="15dp"
         android:hint="请输入用户名">
 
     </EditText>
 
     <EditText
+        android:id="@+id/password"
         android:layout_width="280dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
         android:layout_gravity="center_horizontal"
         android:inputType="textPassword"
         android:padding="10dp"
-        android:textSize="20dp"
+        android:textSize="15dp"
         android:background="@drawable/edit_round"
         android:hint="请输入密码">
     </EditText>
@@ -40,6 +42,7 @@
         >
 
         <Button
+            android:id="@+id/login"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
@@ -47,9 +50,9 @@
             android:layout_marginLeft="100dp"
             android:text="登陆"></Button>
         <Button
+            android:id="@+id/regist"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-
             android:layout_marginTop="20dp"
             android:background="@drawable/edit_round"
             android:layout_marginLeft="50dp"

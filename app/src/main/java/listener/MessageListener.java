@@ -5,15 +5,20 @@ import android.util.Log;
 import com.baidu.tts.client.SpeechError;
 import com.baidu.tts.client.SpeechSynthesizerListener;
 
-import inter.MainHandlerConstant;
+
 
 /**
  * SpeechSynthesizerListener 简单地实现，仅仅记录日志
  * Created by fujiayi on 2017/5/19.
  */
 
-public class MessageListener implements SpeechSynthesizerListener, MainHandlerConstant {
+public class MessageListener implements SpeechSynthesizerListener {
     private static final String TAG = "MessageListener";
+    static final int PRINT = 0;
+    static final int UI_CHANGE_INPUT_TEXT_SELECTION = 1;
+    static final int UI_CHANGE_SYNTHES_TEXT_SELECTION = 2;
+
+    static final int INIT_SUCCESS = 2;
 
     /**
      * 播放开始，每句播放开始都会回调

@@ -17,13 +17,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
-import android.widget.FrameLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -115,15 +109,13 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     //当前正播放的streamId
     int currStaeamId;
 
-    public com.github.bassaer.chatmessageview.model.ChatUser me;
-    public com.github.bassaer.chatmessageview.model.ChatUser you;
+    public com.github.bassaer.chatmessageview.model.ChatUser userRight;
+    public com.github.bassaer.chatmessageview.model.ChatUser userLeft;
 
     public ChatView mChatView;
 
     private float moveX;
-    private float moveY;
     private float pressX;
-    private float pressY;
 
     public ActivityUiDialog() {
         super(R.raw.uidialog_recog, false);
@@ -138,13 +130,13 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         initPermission();
         //声音池
         initSoundPool();
-        //
+        // 语音识别初始化
         init();
         //合成初始化
         initTTs();
-
+        // 语音唤醒初始化
         initWakeup();
-
+        // 初始化聊天面板
         initChatView();
 
     }
@@ -156,67 +148,35 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         View parent = (View) findViewById(R.id.inputBox).getParent();
         //设置透明
         parent.getBackground().setAlpha(12);
-        //隐藏
+        //隐藏输入框
         parent.setVisibility(View.INVISIBLE);
         //User id
         int myId = 0;
         //User icon
         Bitmap myIcon = BitmapFactory.decodeResource(getResources(), R.drawable.man);
         //User name
-        String myName = "你";
+        String UserRightName = "你";
 
         int yourId = 1;
         Bitmap yourIcon = BitmapFactory.decodeResource(getResources(), R.drawable.reboot);
-        String yourName = "曼拉";
+        String userLeftName = "曼拉";
 
-        me = new com.github.bassaer.chatmessageview.model.ChatUser(myId, myName, myIcon);
-        you = new com.github.bassaer.chatmessageview.model.ChatUser(yourId, yourName, yourIcon);
-        //txtLog = (TextView) findViewById(R.id.txtLog);
+        userRight = new com.github.bassaer.chatmessageview.model.ChatUser(myId, UserRightName, myIcon);
+        userLeft = new com.github.bassaer.chatmessageview.model.ChatUser(yourId, userLeftName, yourIcon);
+        // 对聊天布局的一些设置
         mChatView.setRightBubbleColor(ContextCompat.getColor(this, R.color.green500));
-
         mChatView.setLeftBubbleColor(ContextCompat.getColor(this, R.color.blueSky));
-
         //mChatView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorTransparent_15));
         mChatView.setSendButtonColor(ContextCompat.getColor(this, R.color.blueGray400));
-
-
         mChatView.setSendIcon(R.drawable.ic_action_send);
-
         mChatView.setRightMessageTextColor(Color.WHITE);
         mChatView.setLeftMessageTextColor(Color.WHITE);
-
         mChatView.setUsernameTextColor(Color.BLACK);
         mChatView.setSendTimeTextColor(Color.BLACK);
         mChatView.setDateSeparatorColor(Color.BLACK);
-        TextView textView = findViewById(R.id.inputBox);
-        // textView.setBackgroundColor(0xD9ffffff);
-        textView.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (keyCode == KeyEvent.KEYCODE_ENTER) {
-                    if (mChatView.getInputText().equals("")) {
-
-                        // Toast.makeText(ActivityUiDialog.this,"你还未输入消息呢~", Toast.LENGTH_SHORT);
-                        return false;
-                    }
-
-                    replay(mChatView.getInputText());
-                    //Reset edit text
-                    mChatView.setInputText("");
-
-
-                    return true;
-                }
-                return false;
-            }
-
-
-        });
-
         mChatView.setInputTextHint("new message...");
         mChatView.setMessageMarginTop(5);
         mChatView.setMessageMarginBottom(5);
-
         mChatView.setOnClickSendButtonListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -227,11 +187,23 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 replay(mChatView.getInputText());
                 //Reset edit text
                 mChatView.setInputText("");
-
             }
-
         });
-        //findViewById(R.id.messageView).setOnTouchListener(TouchListen());
+        // 监听回车键
+        TextView textView = findViewById(R.id.inputBox);
+        textView.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                if (mChatView.getInputText().equals("")) {
+                    return false;
+                }
+                replay(mChatView.getInputText());
+                //Reset edit text
+                mChatView.setInputText("");
+                return true;
+            }
+            return false;
+        });
+        // 增加 滑动切换输入方式
         findViewById(R.id.mainXml).setOnTouchListener(TouchListen());
     }
 
@@ -239,24 +211,21 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         return new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-
                 switch (event.getAction()) {
-                    //按下
+                    //按下屏幕时
                     case MotionEvent.ACTION_DOWN:
                         pressX = event.getX();
-                        pressY = event.getY();
                         break;
                     //移动
                     case MotionEvent.ACTION_MOVE:
                         moveX = event.getX();
-                        moveY = event.getY();
                         break;
-                    //松开
+                    //松开屏幕时
                     case MotionEvent.ACTION_UP:
                         if (moveX - pressX > 150) {
                             Log.i("message", "向右");
                             View parent = (View) findViewById(R.id.inputBox).getParent();
-                            //显示
+                            //显示输入框
                             parent.setVisibility(View.INVISIBLE);
                             findViewById(R.id.btn).setVisibility(View.VISIBLE);
                         } else if (moveX - pressX < 150) {
@@ -264,9 +233,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                             //隐藏按钮
                             findViewById(R.id.btn).setVisibility(View.INVISIBLE);
                             //显示 输入框
-                                parent.setVisibility(View.VISIBLE);
-
-
+                            parent.setVisibility(View.VISIBLE);
                             Log.i("message", "向左");
                         }
                         break;
@@ -275,19 +242,20 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 }
                 return true;
             }
-
         };
     }
 
 
-
+    /**
+     *  初始化唤醒服务
+     */
     private void initWakeup() {
-        //唤醒调用
+        //唤醒成功后调用
         IWakeupListener listener = new SimpleWakeupListener(){
             @Override
             public void onSuccess(String word, WakeUpResult result) {
                 super.onSuccess(word, result);
-
+                
                 start();
             }
         };
@@ -301,18 +269,18 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
 
     }
 
+    /**
+     *
+     */
     private void init()  {
         ApplicationInfo appInfo = null;
-
         try {
             appInfo = this.getPackageManager()
                     .getApplicationInfo(getPackageName(),
                             PackageManager.GET_META_DATA);
 
             appId = String.valueOf(appInfo.metaData.getInt("com.baidu.speech.APP_ID"));
-
             appKey = appInfo.metaData.getString("com.baidu.speech.API_KEY");
-
             secretKey = appInfo.metaData.getString("com.baidu.speech.SECRET_KEY");
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
@@ -340,7 +308,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                     showText = msg.getData().getString("msg");
                     System.out.println(showText);
                     com.github.bassaer.chatmessageview.model.Message message = new com.github.bassaer.chatmessageview.model.Message.Builder()
-                            .setUser(you)
+                            .setUser(userLeft)
                             .setRight(false)
                             .setText(showText)
                             .build();
@@ -370,34 +338,34 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
      */
     @Override
     protected void start() {
-//        txtLog.setText("");
+
         mSpeechSynthesizer.stop();
         playSound(1, 0);
-
         // 此处params可以打印出来，直接写到你的代码里去，最终的json一致即可。
         final Map<String, Object> params = fetchParams();
-
         // BaiduASRDigitalDialog的输入参数
         input = new DigitalDialogInput(myRecognizer, chainRecogListener, params);
         BaiduASRDigitalDialog.setInput(input); // 传递input信息，在BaiduASRDialog中读取,
         Intent intent = new Intent(this, BaiduASRDigitalDialog.class);
-
         // 修改对话框样式
-         intent.putExtra(BaiduASRDigitalDialog.PARAM_DIALOG_THEME, BaiduASRDigitalDialog.THEME_GREEN_LIGHTBG);
-
+        intent.putExtra(BaiduASRDigitalDialog.PARAM_DIALOG_THEME, BaiduASRDigitalDialog.THEME_GREEN_LIGHTBG);
         running = true;
         startActivityForResult(intent, 2);
     }
 
+    /**
+     * 语音识别识别成功调用
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         running = false;
         Log.i(TAG, "requestCode" + requestCode);
-
         if (requestCode == 2) {
             String res = "对话框的识别结果：";
             if (resultCode == RESULT_OK) {
-
                 ArrayList results = data.getStringArrayListExtra("results");
                 if (results != null && results.size() > 0) {
                     res += results.get(0);
@@ -407,26 +375,25 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             } else {
                 res += "没有结果";
             }
-
             MyLogger.info(res);
         }
-
     }
 
+    /**
+     *  根据识别出来的 文本 回复相应的对话 并合成发音
+     * @param res
+     */
     private void replay(String res) {
         com.github.bassaer.chatmessageview.model.Message msg = new com.github.bassaer.chatmessageview.model.Message.Builder()
-                .setUser(me)
+                .setUser(userRight)
                 .setRight(true)
                 .setText(res)
                 .build();
         mChatView.setRefreshing(true);
-        //Set to chat view
         mChatView.send(msg);
-
         String resUrlEncode = URLEncoder.encode(res);
         new Thread(()->{
             String text = null ;
-
             try {
                 OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.SECONDS).build();//创建OkHttpClient对象
                 Request request = new Request.Builder()
@@ -435,11 +402,9 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                         .build();
 
                 Response response = null;
-
                 response = client.newCall(request).execute();
                 text = response.body().string();
 
-                //txtLog.append("绿漾："+text+ "\n");
             } catch (Exception e) {
                 text = "服务器连接异常，请先检测您是否已经开启了服务器。";
             }
@@ -450,6 +415,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             message.what = 200;
             mainHandler.sendMessage(message);
             mSpeechSynthesizer.stop();
+            //
             mSpeechSynthesizer.speak(text);
 
         }).start();
@@ -470,14 +436,11 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         LoggerProxy.printable(true); // 日志打印在logcat中
         boolean isMix = ttsMode.equals(TtsMode.MIX);
         boolean isSuccess;
-
         // 日志更新在UI中，可以换成MessageListener，在logcat中查看日志
         SpeechSynthesizerListener listener = new UiMessageListener(mainHandler);
-
         // 1. 获取实例
         mSpeechSynthesizer = SpeechSynthesizer.getInstance();
         mSpeechSynthesizer.setContext(this);
-
         // 2. 设置listener
         mSpeechSynthesizer.setSpeechSynthesizerListener(listener);
 
@@ -547,7 +510,6 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         // 6. 初始化
        mSpeechSynthesizer.initTts(ttsMode);
        checkResult(result, "initTts");
-
     }
     private boolean checkAuth() {
         AuthInfo authInfo = mSpeechSynthesizer.auth(ttsMode);
