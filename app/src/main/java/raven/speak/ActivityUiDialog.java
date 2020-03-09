@@ -25,6 +25,7 @@ import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baidu.speech.asr.SpeechConstant;
 import com.baidu.tts.auth.AuthInfo;
 import com.baidu.tts.chainofresponsibility.logger.LoggerProxy;
@@ -33,6 +34,8 @@ import com.baidu.tts.client.SpeechSynthesizerListener;
 import com.baidu.tts.client.TtsMode;
 import com.github.bassaer.chatmessageview.view.ChatView;
 
+
+import org.json.JSONException;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -51,6 +54,7 @@ import recog.listen.MessageStatusRecogListener;
 import uidialog.BaiduASRDigitalDialog;
 import uidialog.DigitalDialogInput;
 import util.AutoCheck;
+import util.HttpUtil;
 import util.MyLogger;
 import wakeup.MyWakeup;
 import wakeup.WakeUpResult;
@@ -98,6 +102,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     // ===============初始化参数设置完毕，更多合成参数请至getParams()方法中设置 =================
     protected Handler mainHandler;
 
+    protected String currRobotSpeak = null;
     protected SpeechSynthesizer mSpeechSynthesizer;
 
     //protected TextView txtLog;
@@ -303,8 +308,8 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
                 String showText = null;
-                if(msg.what == 400 || msg.what == 200){
-
+                // 200代表 回复的消息
+                if(msg.what == 200){
                     showText = msg.getData().getString("msg");
                     System.out.println(showText);
                     com.github.bassaer.chatmessageview.model.Message message = new com.github.bassaer.chatmessageview.model.Message.Builder()
@@ -313,19 +318,17 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                             .setText(showText)
                             .build();
                     mChatView.setRefreshing(false);
-                    //Set to chat view
                     mChatView.send(message);
-                   /* EditText editText = findViewById(R.id.inputBox);
-
-                    editText.setFocusableInTouchMode(true);
-                    editText.requestFocus();
-                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.showSoftInput(editText, 0);*/
                 }
 
                 if (msg.obj != null) {
-                    print(msg.obj.toString());
+                    print("mainHandler收到："+msg.obj.toString());
+                    // 如果机器人追问
+                    if(msg.obj.toString().contains("播放结束回调") &&
+                            (currRobotSpeak.contains("?")||currRobotSpeak.contains("请问"))){
+                            start();
 
+                    }
                 }
             }
 
@@ -337,7 +340,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
      * 开始录音，点击“开始”按钮后调用。
      */
     @Override
-    protected void start() {
+    public void start() {
 
         mSpeechSynthesizer.stop();
         playSound(1, 0);
@@ -391,32 +394,27 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 .build();
         mChatView.setRefreshing(true);
         mChatView.send(msg);
-        String resUrlEncode = URLEncoder.encode(res);
+        //String resUrlEncode = URLEncoder.encode(res);
         new Thread(()->{
-            String text = null ;
-            try {
-                OkHttpClient client = new OkHttpClient.Builder().connectTimeout(2, TimeUnit.SECONDS).build();//创建OkHttpClient对象
-                Request request = new Request.Builder()
-                        .url("http://192.168.2.112/replay?word=" +
-                                resUrlEncode)//请求接口。如果需要传参拼接到接口后面。
-                        .build();
 
-                Response response = null;
-                response = client.newCall(request).execute();
-                text = response.body().string();
+            Map<String , String> param = new HashMap<>();
+            param.put("word",res);
+            JSONObject obj = HttpUtil.get(InitConfig.host + "/replay", param);
+            System.out.println(obj.toJSONString());
+           // String status = obj.getString("status");
+           // if(status.equals("success")){
+                String data = obj.getString("data");
+                Message message = new Message();
+                Bundle bundle = new Bundle();
+                bundle.putString("msg",data);
+                message.setData(bundle);
+                message.what = 200;
+                mainHandler.sendMessage(message);
+                mSpeechSynthesizer.stop();
+                mSpeechSynthesizer.speak(data);
+                currRobotSpeak = data;
+            //}
 
-            } catch (Exception e) {
-                text = "服务器连接异常，请先检测您是否已经开启了服务器。";
-            }
-            Message message = new Message();
-            Bundle bundle = new Bundle();
-            bundle.putString("msg",text);
-            message.setData(bundle);
-            message.what = 200;
-            mainHandler.sendMessage(message);
-            mSpeechSynthesizer.stop();
-            //
-            mSpeechSynthesizer.speak(text);
 
         }).start();
     }

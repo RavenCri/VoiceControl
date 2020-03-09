@@ -4,6 +4,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import raven.speak.ActivityUiDialog;
+
 /**
  * 在 MessageListener的基础上，和UI配合。
  * Created by fujiayi on 2017/9/14.
@@ -13,12 +15,14 @@ public class UiMessageListener extends MessageListener {
 
     private Handler mainHandler;
 
-    private static final String TAG = "UiMessageListener";
+    private  ActivityUiDialog activityUiDialog;
 
-    public UiMessageListener(Handler mainHandler) {
+    private static final String TAG = "UiMessageListener";
+    public UiMessageListener(Handler mainHandler){
         super();
         this.mainHandler = mainHandler;
     }
+
 
     /**
      * 合成数据和进度的回调接口，分多次回调。
@@ -42,7 +46,8 @@ public class UiMessageListener extends MessageListener {
      */
     @Override
     public void onSpeechProgressChanged(String utteranceId, int progress) {
-        // sendMessage("onSpeechProgressChanged");
+        System.out.println("progress:"+progress);
+
         mainHandler.sendMessage(mainHandler.obtainMessage(UI_CHANGE_INPUT_TEXT_SELECTION, progress, 0));
     }
 
