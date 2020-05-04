@@ -32,6 +32,7 @@ import com.baidu.tts.chainofresponsibility.logger.LoggerProxy;
 import com.baidu.tts.client.SpeechSynthesizer;
 import com.baidu.tts.client.SpeechSynthesizerListener;
 import com.baidu.tts.client.TtsMode;
+import com.github.bassaer.chatmessageview.model.ChatUser;
 import com.github.bassaer.chatmessageview.view.ChatView;
 
 
@@ -43,6 +44,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import activity.LoginActivity;
+import chat.ui.ChatUiUtil;
 import config.InitConfig;
 import listener.UiMessageListener;
 import okhttp3.OkHttpClient;
@@ -51,6 +54,9 @@ import okhttp3.Response;
 import recog.ActivityAbstractRecog;
 import recog.listen.ChainRecogListener;
 import recog.listen.MessageStatusRecogListener;
+import ua.naiksoftware.stomp.Stomp;
+
+import ua.naiksoftware.stomp.StompClient;
 import uidialog.BaiduASRDigitalDialog;
 import uidialog.DigitalDialogInput;
 import util.AutoCheck;
@@ -114,13 +120,15 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     //当前正播放的streamId
     int currStaeamId;
 
-    public com.github.bassaer.chatmessageview.model.ChatUser userRight;
-    public com.github.bassaer.chatmessageview.model.ChatUser userLeft;
+    public static ChatUser userRight;
+    public static ChatUser userLeft;
 
-    public ChatView mChatView;
+    public static ChatView mChatView;
 
     private float moveX;
     private float pressX;
+
+    private StompClient mStompClient;
 
     public ActivityUiDialog() {
         super(R.raw.uidialog_recog, false);
@@ -143,9 +151,37 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         initWakeup();
         // 初始化聊天面板
         initChatView();
-
+        //初始化点对点通信
+        initStompService();
     }
 
+    /**
+     * 创建长连接
+     */
+    private void initStompService() {
+        HashMap<String, String> header = new HashMap() {{
+            put("name", LoginActivity.userInfo.getString("username")+"@android");
+        }};
+        mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.0.103:8080/ws/websocket?token="+LoginActivity.token, header);
+        mStompClient.connect();
+        mStompClient.topic("/topic/notice").subscribe(s -> {
+            Message message = new Message();
+            Bundle bundle = new Bundle();
+            bundle.putString("msg",s.getPayload());
+            message.setData(bundle);
+            message.what = 200;
+            mainHandler.sendMessage(message);
+
+        });
+        mStompClient.topic("/user/topic/reply").subscribe(s -> {
+            Message message = new Message();
+            Bundle bundle = new Bundle();
+            bundle.putString("msg",s.getPayload());
+            message.setData(bundle);
+            message.what = 200;
+            mainHandler.sendMessage(message);
+        });
+    }
     private void initChatView() {
         //解决输入框与键盘的高度wet提
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
@@ -312,13 +348,8 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 if(msg.what == 200){
                     showText = msg.getData().getString("msg");
                     System.out.println(showText);
-                    com.github.bassaer.chatmessageview.model.Message message = new com.github.bassaer.chatmessageview.model.Message.Builder()
-                            .setUser(userLeft)
-                            .setRight(false)
-                            .setText(showText)
-                            .build();
-                    mChatView.setRefreshing(false);
-                    mChatView.send(message);
+                    ChatUiUtil.showMsg("left",showText,false);
+
                 }
 
                 if (msg.obj != null) {
@@ -399,11 +430,13 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
 
             Map<String , String> param = new HashMap<>();
             param.put("word",res);
-            JSONObject obj = HttpUtil.get(InitConfig.host + "/replay", param);
+            param.put("platForm","android");
+            param.put("deviceId","0000-0000-0000-0001");
+            JSONObject obj = HttpUtil.get(InitConfig.host + "/roobot/replay", param);
             System.out.println(obj.toJSONString());
            // String status = obj.getString("status");
            // if(status.equals("success")){
-                String data = obj.getString("data");
+                String data = obj.getString("msg");
                 Message message = new Message();
                 Bundle bundle = new Bundle();
                 bundle.putString("msg",data);

@@ -1,4 +1,4 @@
-package raven.speak;
+package activity;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -7,6 +7,8 @@ import android.view.WindowManager;
 
 import java.util.Timer;
 import java.util.TimerTask;
+
+import raven.speak.R;
 
 /**
  * 启动背景 一般用于广告图

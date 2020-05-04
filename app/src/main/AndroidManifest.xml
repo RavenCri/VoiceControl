@@ -21,7 +21,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".initActivity"
+            android:name="activity.initActivity"
             android:theme="@style/LunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -29,7 +29,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".LoginActivity"
+        <activity android:name="activity.LoginActivity"
 
             >
 
