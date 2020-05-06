@@ -1,7 +1,9 @@
 package raven.speak;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -15,16 +17,23 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baidu.speech.asr.SpeechConstant;
 import com.baidu.tts.auth.AuthInfo;
@@ -34,13 +43,17 @@ import com.baidu.tts.client.SpeechSynthesizerListener;
 import com.baidu.tts.client.TtsMode;
 import com.github.bassaer.chatmessageview.model.ChatUser;
 import com.github.bassaer.chatmessageview.view.ChatView;
+import com.google.android.material.navigation.NavigationView;
 
 
 import org.json.JSONException;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -130,6 +143,13 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
 
     private StompClient mStompClient;
 
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
+
+    private String currentChooesDevice;
+    private List<String> devices = new ArrayList<>();
+    ImageView menu;
+
     public ActivityUiDialog() {
         super(R.raw.uidialog_recog, false);
     }
@@ -139,8 +159,10 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         System.out.println("进UiDialog");
+        initUI();
         //动态权限
         initPermission();
+
         //声音池
         initSoundPool();
         // 语音识别初始化
@@ -153,6 +175,92 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         initChatView();
         //初始化点对点通信
         initStompService();
+        //初始化设备列表
+        initDevices();
+    }
+
+    private void initDevices() {
+
+        new Thread(){
+            @Override
+            public void run() {
+                Response response = HttpUtil.get("http://"+InitConfig.host + "/device/list", null);
+
+                if(response != null){
+                    JSONObject data = null;
+                    try {
+                        data = JSON.parseObject(response.body().string());
+
+                        JSONArray devicesJSON = JSONArray.parseArray(data.getString("data"));
+
+                        for (int i = 0; i < devicesJSON.size(); i++) {
+                            System.out.println(devicesJSON.get(i));
+                            String deviceId = devicesJSON.getJSONObject(i).getString("deviceId");
+
+                            if(i == 0)currentChooesDevice = deviceId;
+                            devices.add(deviceId);
+
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }.start();
+
+    }
+
+    private void initUI() {
+        drawerLayout = findViewById(R.id.mainXml);
+        navigationView = findViewById(R.id.nav);
+
+        navigationView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                drawerLayout.closeDrawer(navigationView);
+                if(item.getTitle().equals("主控设备")){
+                    showSelect();
+                }else if (item.getTitle().equals("关于我们")){
+                    Toast.makeText(ActivityUiDialog.this,"科睿出品",Toast.LENGTH_SHORT).show();
+                }
+                //Toast.makeText(ActivityUiDialog.this,item.getTitle().toString(),Toast.LENGTH_SHORT).show();
+
+//                drawerLayout.closeDrawer(navigationView);
+                return true;
+            }
+        });
+    }
+
+    public void showSelect(){
+
+        String[] items = devices.toArray(new String[devices.size()]);
+        final int[] index = {0};
+        AlertDialog alertDialog4 = new AlertDialog.Builder(this)
+                .setTitle("选择您的主控设备：")
+                .setIcon(R.mipmap.ic_launcher)
+                .setSingleChoiceItems(items, 0, new DialogInterface.OnClickListener() {//添加单选框
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        index[0] = i;
+                    }
+                })
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {//添加"Yes"按钮
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        currentChooesDevice = items[index[0]];
+                        //Toast.makeText(ActivityUiDialog.this, "这是确定按钮" + "点的是：" + item[index[0]], Toast.LENGTH_SHORT).show();
+                    }
+                })
+
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {//添加取消
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        //Toast.makeText(ActivityUiDialog.this, "这是取消按钮", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .create();
+        alertDialog4.show();
     }
 
     /**
@@ -162,7 +270,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         HashMap<String, String> header = new HashMap() {{
             put("name", LoginActivity.userInfo.getString("username")+"@android");
         }};
-        mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://192.168.0.103:8080/ws/websocket?token="+LoginActivity.token, header);
+        mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://"+InitConfig.host+"/ws/websocket?token="+LoginActivity.token, header);
         mStompClient.connect();
         mStompClient.topic("/topic/notice").subscribe(s -> {
             Message message = new Message();
@@ -234,6 +342,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         TextView textView = findViewById(R.id.inputBox);
         textView.setOnKeyListener((v, keyCode, event) -> {
             if (keyCode == KeyEvent.KEYCODE_ENTER) {
+
                 if (mChatView.getInputText().equals("")) {
                     return false;
                 }
@@ -245,9 +354,37 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             return false;
         });
         // 增加 滑动切换输入方式
-        findViewById(R.id.mainXml).setOnTouchListener(TouchListen());
-    }
+        findViewById(R.id.operation).setOnTouchListener(TouchListen());
+        findViewById(R.id.message_view).setOnTouchListener(meum());
 
+    }
+    private View.OnTouchListener meum() {
+        return new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    //按下屏幕时
+                    case MotionEvent.ACTION_DOWN:
+                        pressX = event.getX();
+                        break;
+                    //移动
+                    case MotionEvent.ACTION_MOVE:
+                        moveX = event.getX();
+                        break;
+                    //松开屏幕时
+                    case MotionEvent.ACTION_UP:
+
+                       if (moveX - pressX > 100) {
+                           drawerLayout.openDrawer(navigationView);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                return true;
+            }
+        };
+    }
     private View.OnTouchListener TouchListen() {
         return new View.OnTouchListener() {
             @Override
@@ -431,11 +568,11 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             Map<String , String> param = new HashMap<>();
             param.put("word",res);
             param.put("platForm","android");
-            param.put("deviceId","0000-0000-0000-0001");
-            JSONObject obj = HttpUtil.get(InitConfig.host + "/roobot/replay", param);
-            System.out.println(obj.toJSONString());
-           // String status = obj.getString("status");
-           // if(status.equals("success")){
+            param.put("deviceId",currentChooesDevice);
+            Response response = HttpUtil.get("http://"+InitConfig.host + "/roobot/replay", param);
+            try {
+                JSONObject obj = JSON.parseObject(response.body().string());
+                System.out.println(obj.toJSONString());
                 String data = obj.getString("msg");
                 Message message = new Message();
                 Bundle bundle = new Bundle();
@@ -446,9 +583,9 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 mSpeechSynthesizer.stop();
                 mSpeechSynthesizer.speak(data);
                 currRobotSpeak = data;
-            //}
-
-
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }).start();
     }
 //

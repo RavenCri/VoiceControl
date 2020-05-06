@@ -20,5 +20,6 @@ public class ChatUiUtil {
                 .build();
         ActivityUiDialog.mChatView.setRefreshing(reFlush);
         ActivityUiDialog.mChatView.send(message);
+        ActivityUiDialog.mChatView.setAutoScroll(true);
     }
 }

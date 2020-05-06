@@ -1,10 +1,12 @@
 package activity;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -20,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import config.InitConfig;
+import okhttp3.Response;
 import raven.speak.ActivityUiDialog;
 import raven.speak.R;
 import util.HttpUtil;
@@ -28,7 +31,8 @@ public class LoginActivity extends Activity {
     public Handler handler;
     /* 用户登录信息*/
     public static JSONObject userInfo;
-    public static String token;
+    public static String token = "";
+    private ProgressDialog progressDialog;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,11 +42,11 @@ public class LoginActivity extends Activity {
 
     private void InitView() {
         TextView username = findViewById(R.id.username);
-        username.setText("test");
+        username.setText("admin");
         TextView password = findViewById(R.id.password);
-        password.setText("test");
+        password.setText("admin");
         Button login  = findViewById(R.id.login);
-        Button  regist = findViewById(R.id.regist);
+       // Button  regist = findViewById(R.id.regist);
 
         handler = new Handler(){
             @Override
@@ -56,49 +60,69 @@ public class LoginActivity extends Activity {
                             result.getString("data"), Toast.LENGTH_SHORT).show();
                 }else{
                     userInfo = JSON.parseObject(result.getString("data"));
-                    token = result.getString("token");
+                    token = data.getString("token");
                     Intent mainIntent = new Intent(LoginActivity.this, ActivityUiDialog.class);
                     startActivity(mainIntent);
                     LoginActivity.this.finish();
                 }
 
-
+                progressDialog.dismiss();
             }
         };
+        login.setOnTouchListener(new View.OnTouchListener(){
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN){
+                    //更改为按下时的背景图片
+                    v.setBackgroundColor(0xfff);
+                }else if(event.getAction() == MotionEvent.ACTION_UP){
+                    //改为抬起时的图片
+                    v.setBackgroundResource(R.drawable.edit_round);
+                }
+                return false;
+            }
+        });
         login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-
                 Map<String,String> param = new HashMap<>();
                 System.out.println(username.getText().toString());
                 param.put("username",username.getText().toString());
                 param.put("password",password.getText().toString());
+                progressDialog = ProgressDialog.show(LoginActivity.this, "请稍等...", "获取数据中...", true);
                 postFrom(param);
 
             }
 
 
         });
-        regist.setOnClickListener(new View.OnClickListener() {
+        /*regist.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Toast.makeText(LoginActivity.this,
                         "点击了注册", Toast.LENGTH_SHORT).show();
             }
-        });
+        });*/
     }
 
     private void postFrom( Map<String,String> param )   {
        new Thread(){
            @Override
            public void run() {
-               JSONObject result = HttpUtil.post(InitConfig.host + "/account/login", param);
-               Message msg = new Message();
-               Bundle data = new Bundle();
-               data.putString("result",result.toJSONString());
-               msg.setData(data);
-               handler.sendMessage(msg);
+               Response response = HttpUtil.post("http://"+InitConfig.host + "/account/login", param);
+               if(response != null)
+               try {
+
+                   Message msg = new Message();
+                   Bundle data = new Bundle();
+                   data.putString("token",response.header("token"));
+                   data.putString("result",response.body().string());
+                   msg.setData(data);
+                   handler.sendMessage(msg);
+               } catch (IOException e) {
+                   e.printStackTrace();
+               }
+
            }
        }.start();
 
