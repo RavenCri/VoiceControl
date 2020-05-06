@@ -124,8 +124,6 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     protected String currRobotSpeak = null;
     protected SpeechSynthesizer mSpeechSynthesizer;
 
-    //protected TextView txtLog;
-
     //声明SoundPool的引用
     SoundPool sp;
     //声明HashMap来存放声音文件
@@ -137,18 +135,19 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     public static ChatUser userLeft;
 
     public static ChatView mChatView;
-
+    //移动的终点X
     private float moveX;
+    //按下时的X
     private float pressX;
 
     private StompClient mStompClient;
 
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
-
+    //当前选择的设备
     private String currentChooesDevice;
+    //所有设备列表
     private List<String> devices = new ArrayList<>();
-    ImageView menu;
 
     public ActivityUiDialog() {
         super(R.raw.uidialog_recog, false);
