@@ -70,6 +70,7 @@ import recog.listen.MessageStatusRecogListener;
 import ua.naiksoftware.stomp.Stomp;
 
 import ua.naiksoftware.stomp.StompClient;
+import ua.naiksoftware.stomp.dto.StompHeader;
 import uidialog.BaiduASRDigitalDialog;
 import uidialog.DigitalDialogInput;
 import util.AutoCheck;
@@ -196,7 +197,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                             System.out.println(devicesJSON.get(i));
                             String deviceId = devicesJSON.getJSONObject(i).getString("deviceId");
 
-                            if(i == 0)currentChooesDevice = deviceId;
+                            if(i == devicesJSON.size()-1)currentChooesDevice = deviceId;
                             devices.add(deviceId);
 
                         }
@@ -266,11 +267,12 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
      * 创建长连接
      */
     private void initStompService() {
-        HashMap<String, String> header = new HashMap() {{
-            put("name", LoginActivity.userInfo.getString("username")+"@android");
-        }};
-        mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://"+InitConfig.host+"/ws/websocket?token="+LoginActivity.token, header);
-        mStompClient.connect();
+
+        mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://"+InitConfig.host+"/ws/websocket?token="+LoginActivity.token);
+
+        List<StompHeader> stompHeaders = new ArrayList<>();
+        stompHeaders.add(new StompHeader("name", LoginActivity.userInfo.getString("username")+"@android"));
+        mStompClient.connect(stompHeaders);
         mStompClient.topic("/topic/notice").subscribe(s -> {
             Message message = new Message();
             Bundle bundle = new Bundle();
@@ -283,6 +285,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         mStompClient.topic("/user/topic/reply").subscribe(s -> {
             Message message = new Message();
             Bundle bundle = new Bundle();
+            System.out.println("收到用户特定订阅消息："+s.getPayload());
             bundle.putString("msg",s.getPayload());
             message.setData(bundle);
             message.what = 200;
@@ -483,8 +486,11 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 // 200代表 回复的消息
                 if(msg.what == 200){
                     showText = msg.getData().getString("msg");
-                    System.out.println(showText);
-                    ChatUiUtil.showMsg("left",showText,false);
+                    if(showText !=null && !showText.equals("")){
+
+                        ChatUiUtil.showMsg("left",showText,false);
+                    }
+
 
                 }
 
