@@ -5,4 +5,6 @@
     <color name="colorAccent">#D81B60</color>
     <color name="colorTransparent_15">#D9ffffff</color>
     <color name="blueSky">#63B8FF</color>
+    <color name="transparent">#85f</color>
+    <color name="white">#fff</color>
 </resources>

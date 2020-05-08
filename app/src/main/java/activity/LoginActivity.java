@@ -32,7 +32,7 @@ public class LoginActivity extends Activity {
     /* 用户登录信息*/
     public static JSONObject userInfo;
     public static String token = "";
-    private ProgressDialog progressDialog;
+    public static ProgressDialog progressDialog;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,7 +66,7 @@ public class LoginActivity extends Activity {
                     LoginActivity.this.finish();
                 }
 
-                progressDialog.dismiss();
+
             }
         };
         login.setOnTouchListener(new View.OnTouchListener(){

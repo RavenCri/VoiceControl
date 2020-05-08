@@ -2,6 +2,9 @@ package raven.speak;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -12,8 +15,10 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.SoundPool;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -76,6 +81,7 @@ import uidialog.DigitalDialogInput;
 import util.AutoCheck;
 import util.HttpUtil;
 import util.MyLogger;
+import util.NotificationSetUtil;
 import wakeup.MyWakeup;
 import wakeup.WakeUpResult;
 import wakeup.listener.IWakeupListener;
@@ -122,7 +128,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     // ===============初始化参数设置完毕，更多合成参数请至getParams()方法中设置 =================
     protected Handler mainHandler;
 
-    protected String currRobotSpeak = null;
+    protected String currRobotSpeak = "";
     protected SpeechSynthesizer mSpeechSynthesizer;
 
     //声明SoundPool的引用
@@ -159,6 +165,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         System.out.println("进UiDialog");
+
         initUI();
         //动态权限
         initPermission();
@@ -175,13 +182,22 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         initChatView();
         //初始化点对点通信
         initStompService();
-        //初始化设备列表
-        initDevices();
+        Context context = this;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            //判断是否需要开启通知栏功能
+            NotificationSetUtil.OpenNotificationSetting(this, new NotificationSetUtil.OnNextLitener() {
+                @Override
+                public void onNext() {
+                    Toast.makeText(context,"已开启通知权限",Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+        LoginActivity.progressDialog.dismiss();
     }
 
-    private void initDevices() {
+    private void initDevices()  {
 
-        new Thread(){
+        Thread thread = new Thread(){
             @Override
             public void run() {
                 Response response = HttpUtil.get("http://"+InitConfig.host + "/device/list", null);
@@ -207,7 +223,13 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
 
                 }
             }
-        }.start();
+        };
+        thread.start();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -223,6 +245,23 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                     showSelect();
                 }else if (item.getTitle().equals("关于我们")){
                     Toast.makeText(ActivityUiDialog.this,"科睿出品",Toast.LENGTH_SHORT).show();
+                }else if(item.getTitle().equals("退出账号")){
+                    new AlertDialog.Builder(ActivityUiDialog.this)
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setTitle("退出账户")
+                            .setMessage("确定要退出当前账户吗?")
+                            .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    Intent LoginActive = new Intent(ActivityUiDialog.this, LoginActivity.class);
+                                    startActivity(LoginActive);
+                                    ActivityUiDialog.this.finish();
+                                }
+                            })
+                            .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                }
+                            }).create().show();
+
                 }
                 //Toast.makeText(ActivityUiDialog.this,item.getTitle().toString(),Toast.LENGTH_SHORT).show();
 
@@ -233,7 +272,9 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
     }
 
     public void showSelect(){
-
+        devices.clear();
+        //初始化设备列表
+        initDevices();
         String[] items = devices.toArray(new String[devices.size()]);
         final int[] index = {0};
         AlertDialog alertDialog4 = new AlertDialog.Builder(this)
@@ -280,6 +321,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             message.setData(bundle);
             message.what = 200;
             mainHandler.sendMessage(message);
+
 
         });
         mStompClient.topic("/user/topic/reply").subscribe(s -> {
@@ -503,6 +545,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
 
                     }
                 }
+                mSpeechSynthesizer.speak(showText);
             }
 
         };
@@ -586,8 +629,8 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
                 message.what = 200;
                 mainHandler.sendMessage(message);
                 mSpeechSynthesizer.stop();
-                mSpeechSynthesizer.speak(data);
-                currRobotSpeak = data;
+                //mSpeechSynthesizer.speak(data);
+                currRobotSpeak = data==null?"":data;
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -7,6 +7,11 @@
             android:icon="@drawable/manager"
             android:title="主控设备"/>
         <item
+            android:id="@+id/lgout"
+            android:title="退出账号"
+            android:icon="@drawable/logout"/>
+
+        <item
             android:id="@+id/about"
             android:title="关于我们"
             android:icon="@drawable/about_us"/>
