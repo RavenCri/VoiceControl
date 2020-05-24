@@ -33,7 +33,7 @@ public class HttpUtil {
             }
 
             Request request = new Request.Builder()
-                    .url(urlBuilder.build()).get().header("token", LoginActivity.token).build();
+                    .url(urlBuilder.build()).get().header("Authorization", LoginActivity.token).build();
             Response response = client.newCall(request).execute();
             return response;
         } catch (Exception e) {
@@ -49,12 +49,13 @@ public class HttpUtil {
             HttpUrl.Builder urlBuilder = HttpUrl.parse(url).newBuilder();
             FormBody.Builder requestBody = new FormBody.Builder();
             System.out.println(url);
+
             param.forEach((k,v)->{
                 requestBody.add(k,v);
             });
             Request request = new Request.Builder()
                     .url(urlBuilder.build()).post(requestBody.build())
-                    .header("token", LoginActivity.token)
+                    .header("authorization", LoginActivity.token)
                     .build();
             Response response = client.newCall(request).execute();
             return response;

@@ -188,7 +188,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
             NotificationSetUtil.OpenNotificationSetting(this, new NotificationSetUtil.OnNextLitener() {
                 @Override
                 public void onNext() {
-                    Toast.makeText(context,"已开启通知权限",Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(context,"已开启通知权限",Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -309,7 +309,7 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
      */
     private void initStompService() {
 
-        mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://"+InitConfig.host+"/ws/websocket?token="+LoginActivity.token);
+        mStompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, "ws://"+InitConfig.host+"/ws/websocket?Authorization="+LoginActivity.token);
 
         List<StompHeader> stompHeaders = new ArrayList<>();
         stompHeaders.add(new StompHeader("name", LoginActivity.userInfo.getString("username")+"@android"));

@@ -60,7 +60,9 @@ public class LoginActivity extends Activity {
                             result.getString("data"), Toast.LENGTH_SHORT).show();
                 }else{
                     userInfo = JSON.parseObject(result.getString("data"));
-                    token = data.getString("token");
+                    System.out.println("Login=>"+userInfo.toJSONString());
+                    token = data.getString("Authorization");
+                    System.out.println("--->"+token);
                     Intent mainIntent = new Intent(LoginActivity.this, ActivityUiDialog.class);
                     startActivity(mainIntent);
                     LoginActivity.this.finish();
@@ -86,7 +88,7 @@ public class LoginActivity extends Activity {
             @Override
             public void onClick(View v) {
                 Map<String,String> param = new HashMap<>();
-                System.out.println(username.getText().toString());
+
                 param.put("username",username.getText().toString());
                 param.put("password",password.getText().toString());
                 progressDialog = ProgressDialog.show(LoginActivity.this, "请稍等...", "获取数据中...", true);
@@ -115,7 +117,7 @@ public class LoginActivity extends Activity {
 
                    Message msg = new Message();
                    Bundle data = new Bundle();
-                   data.putString("token",response.header("token"));
+                   data.putString("Authorization",response.header("Authorization"));
                    data.putString("result",response.body().string());
                    msg.setData(data);
                    handler.sendMessage(msg);
