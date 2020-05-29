@@ -53,10 +53,15 @@ public class HttpUtil {
             param.forEach((k,v)->{
                 requestBody.add(k,v);
             });
-            Request request = new Request.Builder()
-                    .url(urlBuilder.build()).post(requestBody.build())
-                    .header("authorization", LoginActivity.token)
-                    .build();
+            Request.Builder post = new Request.Builder()
+                    .url(urlBuilder.build()).post(requestBody.build());
+            Request request;
+            if( LoginActivity.token != null){
+                request = post.header("authorization", LoginActivity.token).build();
+            }else{
+                request = post.build();
+            }
+
             Response response = client.newCall(request).execute();
             return response;
         } catch (IOException e) {

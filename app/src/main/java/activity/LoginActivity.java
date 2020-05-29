@@ -31,7 +31,7 @@ public class LoginActivity extends Activity {
     public Handler handler;
     /* 用户登录信息*/
     public static JSONObject userInfo;
-    public static String token = "";
+    public static String token = null;
     public static ProgressDialog progressDialog;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -54,6 +54,7 @@ public class LoginActivity extends Activity {
                 super.handleMessage(msg);
                 Bundle data = msg.getData();
                 JSONObject result = JSON.parseObject(data.getString("result"));
+                System.out.println(JSON.toJSONString(result));
                 // 如果登陆失败
                 if(result.getInteger("code") != 200){
                     Toast.makeText(LoginActivity.this,
@@ -119,6 +120,7 @@ public class LoginActivity extends Activity {
                    Bundle data = new Bundle();
                    data.putString("Authorization",response.header("Authorization"));
                    data.putString("result",response.body().string());
+                   System.out.println("--->"+response.header("Authorization"));
                    msg.setData(data);
                    handler.sendMessage(msg);
                } catch (IOException e) {
