@@ -118,6 +118,7 @@ public class LoginActivity extends Activity {
 
                    Message msg = new Message();
                    Bundle data = new Bundle();
+                   // token
                    data.putString("Authorization",response.header("Authorization"));
                    data.putString("result",response.body().string());
                    System.out.println("--->"+response.header("Authorization"));

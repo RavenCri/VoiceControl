@@ -195,6 +195,10 @@ public class ActivityUiDialog extends ActivityAbstractRecog {
         LoginActivity.progressDialog.dismiss();
     }
 
+    /**
+     * '
+     *  初始化拥有设备信息
+     */
     private void initDevices()  {
 
         Thread thread = new Thread(){
